@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:learn/views/user/authentication/authScreen.dart';
 import 'package:learn/views/user/cart/cartScreen.dart';
 import 'package:learn/views/user/product/favoriteScreen.dart';
-import 'package:learn/views/user/authentication/orders/orderHistoryScreen.dart';
+import 'package:learn/views/user/orders/orderHistoryScreen.dart';
 import 'package:learn/views/user/product/product_detalScreen.dart';
 import 'package:learn/views/user/authentication/profileScreen.dart';
 import 'package:learn/providers/homeVM.dart';
