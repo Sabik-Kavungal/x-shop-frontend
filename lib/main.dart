@@ -1,70 +1,175 @@
 import 'package:flutter/material.dart';
+import 'package:learn/config/localDB.dart';
+import 'package:learn/config/routes.dart';
+import 'package:learn/providers/authVM.dart';
+import 'package:learn/providers/cartVM.dart';
 import 'package:learn/views/user/authentication/authScreen.dart';
 import 'package:learn/views/user/cart/cartScreen.dart';
+import 'package:learn/views/user/product/categorybyProduct.dart';
 import 'package:learn/views/user/product/favoriteScreen.dart';
 import 'package:learn/views/user/orders/orderHistoryScreen.dart';
 import 'package:learn/views/user/product/product_detalScreen.dart';
 import 'package:learn/views/user/authentication/profileScreen.dart';
 import 'package:learn/providers/homeVM.dart';
 import 'package:provider/provider.dart';
+import 'package:hive_flutter/adapters.dart';
 
-void main() {
-  runApp(MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => HomeProvider())],
-      child: HomePageApp()));
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+
+  // Fetch token and user type
+  final token = await LocalDatabaseService()
+      .fromDb(await LocalDatabaseService().openBox("token"), 'key');
+  final userType = await LocalDatabaseService()
+      .fromDb(await LocalDatabaseService().openBox("type"), 'key');
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => HomeProvider()),
+        ChangeNotifierProvider(create: (_) => AuthVM()),
+        ChangeNotifierProvider(create: (_) => CartVM()),
+      ],
+      child: HomePageApp(savedToken: token, userType: userType),
+    ),
+  );
 }
 
 class HomePageApp extends StatelessWidget {
+  final String? savedToken;
+  final String? userType;
+
+  const HomePageApp({super.key, this.savedToken, this.userType});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         fontFamily: 'Poppins',
-        scaffoldBackgroundColor: Color(0xFFFFFFFF), // Default barckground color
-        primarySwatch: Colors.red, // Default primary color for your app
-        appBarTheme: AppBarTheme(
-            //  backgroundColor: Color(0xFF6200EE), // AppBar background color
-            ),
+        scaffoldBackgroundColor: const Color(0xFFFFFFFF),
+        primarySwatch: Colors.red,
+        appBarTheme: const AppBarTheme(),
       ),
-      home: Scaffold(
-        body: Consumer<HomeProvider>(builder: (context, p, childs) {
-          return p.currentPage;
-        }),
-         bottomNavigationBar:
-          Consumer<HomeProvider>(builder: (context, pro, child) {
-        return BottomNavigationBar(
-            currentIndex: pro.selectIndex,
-            onTap: (v) {
-              pro.setSelectINdex(v);
-            },
-            backgroundColor: Colors.white,
-            selectedItemColor: const Color(0xFF6200EE),
-            unselectedItemColor: Colors.grey,
-            items: List.generate(
-              4,
-              (index) {
-                return BottomNavigationBarItem(
-                  icon: Icon(
-                      [
-                        Icons.home,
-                        Icons.favorite,
-                        Icons.person,
-                        Icons.shopping_bag
-                      ][index],
-                      color: Colors.grey[400],
-                      size: 24),
-                  label: ['Home', 'Favorite', 'Profile', 'cart'][index],
-                );
-              },
-            ));
-      }),
-      ),
+      home: SplashScreen(savedToken: savedToken, userType: userType),
+      initialRoute: '/',
+      onGenerateRoute: generateRoute,
     );
   }
 }
 
+class SplashScreen extends StatelessWidget {
+  final String? savedToken;
+  final String? userType;
+
+  const SplashScreen({super.key, this.savedToken, this.userType});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: FutureBuilder<void>(
+        future: _initializeApp(context),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+              ),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(
+                'An error occurred: ${snapshot.error}',
+                style: const TextStyle(color: Colors.red, fontSize: 16),
+              ),
+            );
+          }
+
+          return const SizedBox.shrink(); // Shouldn't reach here
+        },
+      ),
+    );
+  }
+
+  Future<void> _initializeApp(BuildContext context) async {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (savedToken != null) {
+        if (userType == 'admin') {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const AdminHomePage()),
+          );
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const UserHomePage()),
+          );
+        }
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => AuthPage()),
+        );
+      }
+    });
+  }
+}
+
+class UserHomePage extends StatelessWidget {
+  const UserHomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Consumer<HomeProvider>(builder: (context, p, childs) {
+        return p.currentPage;
+      }),
+      bottomNavigationBar:
+          Consumer<HomeProvider>(builder: (context, pro, child) {
+        return BottomNavigationBar(
+          currentIndex: pro.selectIndex,
+          onTap: (v) {
+            pro.setSelectINdex(v);
+          },
+          backgroundColor: Colors.white,
+          selectedItemColor: const Color(0xFF6200EE),
+          unselectedItemColor: Colors.grey,
+          items: List.generate(
+            4,
+            (index) {
+              return BottomNavigationBarItem(
+                icon: Icon(
+                  [
+                    Icons.home,
+                    Icons.favorite,
+                    Icons.person,
+                    Icons.shopping_bag
+                  ][index],
+                  color: Colors.grey[400],
+                  size: 24,
+                ),
+                label: ['Home', 'Favorite', 'Profile', 'Cart'][index],
+              );
+            },
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class AdminHomePage extends StatelessWidget {
+  const AdminHomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Similar structure as AdminHomePage or customize as needed
+    return const Center(child: Text("User Home Page"));
+  }
+}
+
 class HomeScreen extends StatelessWidget {
+  static const String routeName = '/home-screen';
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -80,16 +185,6 @@ class HomeScreen extends StatelessWidget {
             fontFamily: 'Roboto',
           ),
         ),
-        // actions: [
-        //   _buildAppBarIcon(
-        //       Icons.notifications, context, () => ProductDetailsScreen()),
-        //   _buildAppBarIcon(Icons.card_travel, context, () => CartScreen()),
-        //   _buildAppBarIcon(
-        //       Icons.person_outline, context, () => CompactProfilePage()),
-        //   _buildAppBarIcon(Icons.history, context, () => OrderHistoryPage()),
-        //   _buildAppBarIcon(
-        //       Icons.favorite_border, context, () => FavoritesPage()),
-        // ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -122,15 +217,7 @@ class HomeScreen extends StatelessWidget {
               SizedBox(height: 13),
               _buildSectionHeader('Categories', context),
               SizedBox(height: 11),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildCategoryCard('Chair', Icons.chair_alt),
-                  _buildCategoryCard('Sofa', Icons.weekend),
-                  _buildCategoryCard('Desk', Icons.table_bar),
-                  _buildCategoryCard('Table', Icons.chair),
-                ],
-              ),
+              buildCategoryList(context),
               SizedBox(height: 20),
               _buildPromoBanner(),
               SizedBox(height: 20),
@@ -153,7 +240,55 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
       ),
-     
+    );
+  }
+
+// Display Categories Dynamically with Horizontal Scrolling
+  Widget buildCategoryList(BuildContext context) {
+    return Consumer<HomeProvider>(
+      builder: (context, provider, child) {
+        if (provider.isloading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (provider.error != null) {
+          return Center(child: Text('Error: ${provider.error}'));
+        }
+
+        if (provider.categoriesList.isEmpty) {
+          return const Center(child: Text('No categories available'));
+        }
+
+        // Wrap the Row in a SingleChildScrollView for horizontal scrolling
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: provider.categoriesList
+                .map(
+                  (category) => GestureDetector(
+                    onTap: () {
+                      // Handle category click
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CategoryItemsScreen(
+                            categoryId: category.id.toString(),
+                            categoryName: category.name,
+                          ),
+                        ),
+                      );
+                    },
+                    child: _buildCategoryCard(
+                      category.name ??
+                          'Unknown', // Ensure null safety for title
+                      Icons.category, // Use a default icon for categories
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        );
+      },
     );
   }
 
@@ -190,23 +325,26 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildCategoryCard(String title, IconData icon) {
-    return Container(
-      height: 80,
-      width: 80,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        color: Colors.grey[200],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: Color(0xFF6200EE), size: 28),
-          SizedBox(height: 6),
-          Text(
-            title,
-            style: TextStyle(fontSize: 13, color: Colors.black87),
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.all(4.0),
+      child: Container(
+        height: 80,
+        width: 80,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          color: Colors.grey[200],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Color(0xFF6200EE), size: 28),
+            SizedBox(height: 6),
+            Text(
+              title,
+              style: TextStyle(fontSize: 13, color: Colors.black87),
+            ),
+          ],
+        ),
       ),
     );
   }

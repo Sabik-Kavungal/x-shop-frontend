@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:learn/views/user/orders/orderHistoryScreen.dart';
 
 class CompactProfilePage extends StatelessWidget {
+  static const String routeName = '/profile-screen';
   // Sample data (replace with actual data or state management as needed)
   final String name = 'John Doe';
   final String email = 'johndoe@example.com';
@@ -209,6 +211,15 @@ class CompactProfilePage extends StatelessWidget {
                 trailing: Icon(Icons.arrow_forward_ios),
                 onTap: () {
                   // Navigate to Help screen
+                },
+              ),
+               SizedBox(height: 12),
+              ListTile(
+                leading: Icon(Icons.shop_sharp, color: Color(0xFF6200EE)),
+                title: Text('Orders'),
+                trailing: Icon(Icons.arrow_forward_ios),
+                onTap: () {
+               Navigator.push(context, MaterialPageRoute(builder: (context)=> AllOrdersScreen()));
                 },
               ),
               SizedBox(height: 12),

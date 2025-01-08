@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class FavoritesPage extends StatelessWidget {
+  static const String routeName = '/favorite-screen';
   final List<Map<String, String>> favoriteItems = [
     {
       "image": "https://via.placeholder.com/150", // Replace with actual URLs
