@@ -11,12 +11,11 @@ class AuthVM extends ChangeNotifier {
   bool _isLogin = true;
   bool get isLogin => _isLogin;
 
-
-
   void toggleLogin() {
     _isLogin = !_isLogin;
     notifyListeners();
   }
+
   UserModel user = UserModel();
   bool _isLoading = false;
   String? _message;
@@ -110,7 +109,7 @@ class AuthVM extends ChangeNotifier {
         // Navigate based on user type
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (_type == 'admin') {
-            Navigator.pushReplacementNamed(context,  CartScreen.routeName);
+            Navigator.pushReplacementNamed(context, CartScreen.routeName);
           } else {
             Navigator.pushReplacementNamed(context, HomeScreen.routeName);
           }
@@ -144,5 +143,12 @@ class AuthVM extends ChangeNotifier {
     } finally {
       notifyListeners();
     }
+  }
+
+  logoutUser() async {
+    final a = await db.openBox("token");
+    db.deleteDb(a, 'key');
+    print("User logged out successfully");
+    notifyListeners();
   }
 }

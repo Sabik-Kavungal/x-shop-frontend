@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:learn/providers/authVM.dart';
 import 'package:learn/views/user/orders/orderHistoryScreen.dart';
+import 'package:provider/provider.dart';
 
 class CompactProfilePage extends StatelessWidget {
   static const String routeName = '/profile-screen';
@@ -38,8 +40,8 @@ class CompactProfilePage extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 50,
-                      backgroundImage:
-                          AssetImage('assets/images/profile.png'), // Replace with your image
+                      backgroundImage: AssetImage(
+                          'assets/images/profile.png'), // Replace with your image
                       backgroundColor: Colors.grey[300],
                     ),
                     Positioned(
@@ -90,7 +92,8 @@ class CompactProfilePage extends StatelessWidget {
                         controller: TextEditingController(text: name),
                         decoration: InputDecoration(
                           labelText: 'Name',
-                          prefixIcon: Icon(Icons.person_outline, color: Color(0xFF6200EE)),
+                          prefixIcon: Icon(Icons.person_outline,
+                              color: Color(0xFF6200EE)),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -102,7 +105,8 @@ class CompactProfilePage extends StatelessWidget {
                         controller: TextEditingController(text: email),
                         decoration: InputDecoration(
                           labelText: 'Email',
-                          prefixIcon: Icon(Icons.email_outlined, color: Color(0xFF6200EE)),
+                          prefixIcon: Icon(Icons.email_outlined,
+                              color: Color(0xFF6200EE)),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -117,7 +121,8 @@ class CompactProfilePage extends StatelessWidget {
                         controller: TextEditingController(text: phone),
                         decoration: InputDecoration(
                           labelText: 'Phone Number',
-                          prefixIcon: Icon(Icons.phone_outlined, color: Color(0xFF6200EE)),
+                          prefixIcon: Icon(Icons.phone_outlined,
+                              color: Color(0xFF6200EE)),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -133,7 +138,8 @@ class CompactProfilePage extends StatelessWidget {
                         maxLines: 2,
                         decoration: InputDecoration(
                           labelText: 'Address',
-                          prefixIcon: Icon(Icons.location_on_outlined, color: Color(0xFF6200EE)),
+                          prefixIcon: Icon(Icons.location_on_outlined,
+                              color: Color(0xFF6200EE)),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -213,13 +219,16 @@ class CompactProfilePage extends StatelessWidget {
                   // Navigate to Help screen
                 },
               ),
-               SizedBox(height: 12),
+              SizedBox(height: 12),
               ListTile(
                 leading: Icon(Icons.shop_sharp, color: Color(0xFF6200EE)),
                 title: Text('Orders'),
                 trailing: Icon(Icons.arrow_forward_ios),
                 onTap: () {
-               Navigator.push(context, MaterialPageRoute(builder: (context)=> AllOrdersScreen()));
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => AllOrdersScreen()));
                 },
               ),
               SizedBox(height: 12),
@@ -227,7 +236,8 @@ class CompactProfilePage extends StatelessWidget {
                 leading: Icon(Icons.logout, color: Color(0xFF6200EE)),
                 title: Text('Logout'),
                 onTap: () {
-                  // Handle Logout action
+                  Provider.of<AuthVM>(context, listen: false).logoutUser();
+                  Navigator.pushReplacementNamed(context, '/auth-screen');
                 },
               ),
             ],
