@@ -3,6 +3,8 @@ import 'package:learn/config/localDB.dart';
 import 'package:learn/config/routes.dart';
 import 'package:learn/providers/authVM.dart';
 import 'package:learn/providers/cartVM.dart';
+import 'package:learn/providers/deal_of_dayVM.dart';
+import 'package:learn/providers/promobannerVM.dart';
 import 'package:learn/views/user/authentication/authScreen.dart';
 import 'package:learn/views/user/cart/cartScreen.dart';
 import 'package:learn/views/user/product/categorybyProduct.dart';
@@ -11,6 +13,7 @@ import 'package:learn/views/user/orders/orderHistoryScreen.dart';
 import 'package:learn/views/user/product/product_detalScreen.dart';
 import 'package:learn/views/user/authentication/profileScreen.dart';
 import 'package:learn/providers/homeVM.dart';
+import 'package:learn/views/user/promo_banner/promobannerlist_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/adapters.dart';
 
@@ -30,6 +33,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => HomeProvider()),
         ChangeNotifierProvider(create: (_) => AuthVM()),
         ChangeNotifierProvider(create: (_) => CartVM()),
+        ChangeNotifierProvider(create: (_) => PrromoBannerVM()),
+        ChangeNotifierProvider(create: (_) => DealOFDayVM()),
       ],
       child: HomePageApp(savedToken: token, userType: userType),
     ),
@@ -350,82 +355,151 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildPromoBanner() {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: Colors.grey[200],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Expanded(
-              flex: 2,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'High-quality sofa started',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Roboto',
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    '70% off',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red,
-                      fontFamily: 'Roboto',
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  TextButton(
-                    onPressed: () {},
-                    child: Text(
-                      'See all items',
-                      style: TextStyle(color: Colors.black),
-                    ),
-                  ),
-                ],
-              ),
+    return Consumer<PrromoBannerVM>(
+      builder: (context, vm, child) {
+        if (vm.isloading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (vm.error != null) {
+          return Center(
+            child: Text(
+              vm.error!,
+              style: const TextStyle(color: Colors.red),
             ),
-            SizedBox(width: 16),
-            Expanded(
-              flex: 3,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  'https://th.bing.com/th/id/OIP.aOwxAEeMY5-zzpH_uEmqnAHaFj?w=1000&h=750&rs=1&pid=ImgDetMain',
-                  height: 120,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+          );
+        }
+
+        if (vm.pbannerList.isEmpty) {
+          return const Center(child: Text("No promotions available."));
+        }
+
+        // Display the first promo banner and 'See All' button
+        final banner = vm.pbannerList.first;
+        return Padding(
+          padding: const EdgeInsets.all(4.0),
+          child: Column(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(
+                      8), // Rounded corners for the container
+                  color: Colors.grey[200], // White background for a clean look
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              banner.title ?? 'No Title',
+                              style: const TextStyle(
+                                fontSize: 14, // Smaller font size for the title
+                                fontWeight: FontWeight.bold,
+                                color: Colors
+                                    .black87, // Darker color for the title
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              banner.description ?? 'No Description',
+                              style: const TextStyle(
+                                fontSize:
+                                    12, // Smaller font size for the description
+                                fontWeight: FontWeight.normal,
+                                color: Colors
+                                    .red, // Red for description to make it pop
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const PromoBannerListPage(),
+                                  ),
+                                );
+                              },
+                              child: const Text(
+                                'See all items',
+                                style: TextStyle(
+                                  color: Colors
+                                      .blue, // Blue for the "See All" button
+                                  fontSize:
+                                      14, // Slightly smaller font size for the button text
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        flex: 3,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(
+                              16), // Rounded corners for the image
+                          child: Image.network(
+                            banner.imageUrl ?? '',
+                            height: 120,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 
   Widget _buildDealsSection() {
-    return Container(
-      height: 180,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          _buildDealCard(
-              'Modern Lamp', 'https://via.placeholder.com/150', '\$49.99'),
-          _buildDealCard(
-              'Stylish Sofa', 'https://via.placeholder.com/150', '\$299.99'),
-          _buildDealCard(
-              'Elegant Table', 'https://via.placeholder.com/150', '\$149.99'),
-        ],
-      ),
+    return Consumer<DealOFDayVM>(
+      builder: (context, dealOFDayVM, child) {
+        // Check if data is loading or there's an error
+        if (dealOFDayVM.isloading) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        if (dealOFDayVM.error != null) {
+          return Center(child: Text('Error: ${dealOFDayVM.error}'));
+        }
+
+        if (dealOFDayVM.dealdayList.isEmpty) {
+          return Center(child: Text('No Deals Available'));
+        }
+
+        // If deals are available, display them in the ListView
+        return Container(
+          height: 180,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: dealOFDayVM.dealdayList.length,
+            itemBuilder: (context, index) {
+              final deal = dealOFDayVM.dealdayList[index];
+
+              // Build each deal card using the data from the ViewModel
+              return _buildDealCard(
+                deal.productName ?? 'Unknown Item',
+                'https://via.placeholder.com/150',
+                '\$${deal.price ?? '0.00'}', // If price is missing, show 0.00
+              );
+            },
+          ),
+        );
+      },
     );
   }
 

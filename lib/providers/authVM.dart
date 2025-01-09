@@ -4,6 +4,8 @@ import 'package:learn/config/service.dart';
 import 'package:learn/main.dart';
 import 'package:learn/models/user_model.dart';
 import 'package:learn/views/user/cart/cartScreen.dart';
+import 'package:image_picker/image_picker.dart'; // Import the image picker package
+import 'dart:io';
 
 class AuthVM extends ChangeNotifier {
   final ServiceRepo _userService = ServiceRepo();
@@ -11,9 +13,39 @@ class AuthVM extends ChangeNotifier {
   bool _isLogin = true;
   bool get isLogin => _isLogin;
 
+  bool _isEditable = false; // Flag to control editable state
+  bool get isEditable => _isEditable;
+
+  AuthVM() {
+    getProfile();
+  }
+
+  void toggleEditMode() {
+    _isEditable = !_isEditable; // Toggle the edit mode
+    notifyListeners();
+  }
+
   void toggleLogin() {
     _isLogin = !_isLogin;
     notifyListeners();
+  }
+
+  File? _pickedImage; // To store the selected image file
+  File? get pickedImage => _pickedImage;
+  // Image picker method
+  Future<void> pickImage(BuildContext context) async {
+    final ImagePicker picker = ImagePicker();
+
+    // Choose either camera or gallery
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery, // Use ImageSource.camera for camera
+      imageQuality: 50, // Adjust image quality if needed
+    );
+
+    if (image != null) {
+      _pickedImage = File(image.path); // Store the picked image file
+      notifyListeners();
+    }
   }
 
   UserModel user = UserModel();
@@ -150,5 +182,83 @@ class AuthVM extends ChangeNotifier {
     db.deleteDb(a, 'key');
     print("User logged out successfully");
     notifyListeners();
+  }
+
+  Future<void> getProfile() async {
+    _isLoading = true;
+
+    notifyListeners();
+    final boxOpen = await db.openBox("token");
+    final token = db.fromDb(boxOpen, 'key');
+    try {
+      final response = await _userService.requist("user/profile",
+          method: "GET", token: token);
+
+      if (response != null && response.containsKey('user')) {
+        user = UserModel.fromJson(response['user']);
+
+        print(user);
+      }
+    } catch (ee) {
+      ee.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateProfile(BuildContext context) async {
+    _isLoading = true;
+    notifyListeners();
+
+    final boxOpen = await db.openBox("token");
+    final token = db.fromDb(boxOpen, 'key');
+    try {
+      // If _pickedImage is not null, convert it to the image path string
+      String? imagePath = _pickedImage?.path; // Convert to String (file path)
+
+      // Use the image path (string) in user.copyWith instead of the File
+      user = user.copyWith(
+        name: user.name,
+        address: user.address,
+        email: user.email,
+        phone: user.phone,
+        image: imagePath, // Now image is a String (path)
+      );
+
+      final response = await _userService.requist(
+        "user/profile",
+        method: "PUT",
+        body: user.toJson(),
+        token: token,
+      );
+
+      if (response != null && response.containsKey('user')) {
+        user = UserModel.fromJson(response['user']);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile updated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update profile'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An error occurred: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 }
